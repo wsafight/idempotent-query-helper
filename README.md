@@ -1,26 +1,27 @@
-# tool-library-template
+# idempotent-query-helper
 
-<!-- [![NPM Version](https://badgen.net/npm/v/tool-library-template)](https://www.npmjs.com/package/tool-library-template) -->
+<!-- [![NPM Version](https://badgen.net/npm/v/idempotent-query-helper)](https://www.npmjs.com/package/idempotent-query-helper) -->
 
 Read this in other languages:
-[English](https://github.com/wsafight/tool-library-template/blob/main/README.EN.md)
+[English](https://github.com/wsafight/idempotent-query-helper/blob/main/README.EN.md)
 
-工具库模板
+幂等请求辅助工具
 
 ## 特性
 
-- [x] 基于 modern.js
+- [ ] 批量操作
+- [ ] 顺序返回
 
 ## 安装
 
 ```bash
-npm install tool-library-template
+npm install idempotent-query-helper
 ```
 
 或者
 
 ```bash
-yarn add tool-library-template
+yarn add idempotent-query-helper
 ```
 
 ## 用法
@@ -39,7 +40,5 @@ yarn add tool-library-template
 ```
 
 ## Changelog
-
-- 0.0.2 切换框架为 modern.js
 
 - 0.0.1 基本可用
