@@ -13,7 +13,7 @@ import {
 
 interface BatchRetryQueryFunQuery<T, R> {
   queryFun: (param: any) => any;
-  paramsList: T[];
+  paramsList: T[][];
   traceIds: string[];
   queryKey?: string;
   traceIdKey: string;
@@ -53,7 +53,7 @@ const batchRetryQuery = async <T, R>({
     const result = await retryQuery<R>({
       queryFun,
       params: {
-        ...(hasQueryKey ? { [queryKey]: currentParams } : currentParams),
+        ...(hasQueryKey ? { [queryKey]: currentParams } : currentParams[0]),
         [traceIdKey]: traceIds[currentIndex],
       },
       getIsRunningByError,
@@ -102,9 +102,9 @@ const idenpotentQuery = async <T, R>({
     throw new Error('queryParam cannot empty');
   }
 
-  const queryParams: T[] = Array.isArray(queryParam)
-    ? queryParam
-    : [queryParam];
+  const isMultipleQueryParams = Array.isArray(queryParam);
+
+  const queryParams: T[] = isMultipleQueryParams ? queryParam : [queryParam];
 
   const {
     concurrency = DEFAULT_CONCURRENCY,
@@ -119,10 +119,11 @@ const idenpotentQuery = async <T, R>({
   } = options;
 
   let finalQueryParamsCount: number = queryParams.length;
-  if (
-    typeof singleQueryParamsCount === 'number' &&
-    singleQueryParamsCount > 0
-  ) {
+
+  const hasSingleQueryParamsCountParam =
+    typeof singleQueryParamsCount === 'number' && singleQueryParamsCount > 0;
+
+  if (hasSingleQueryParamsCountParam) {
     finalQueryParamsCount = singleQueryParamsCount;
   }
 
@@ -143,7 +144,7 @@ const idenpotentQuery = async <T, R>({
   const queryFunList = paramsList.map(
     (item, idx) => () =>
       queryFun({
-        ...(hasQueryKey ? { [queryKey]: item } : item),
+        ...(hasQueryKey ? { [queryKey]: item } : item[0]),
         [traceIdKey]: traceIds[idx],
       }),
   );
@@ -166,7 +167,6 @@ const idenpotentQuery = async <T, R>({
 
   const retryQueryTimeByQueryIndex: Record<number, number> = {};
 
-  // 具有请求失败了
   if (apiErrorIndex.length) {
     apiErrorIndex.forEach(index => {
       const currentErr: Error = apiErrorByIndex[index]!;
