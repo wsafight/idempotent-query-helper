@@ -1,24 +1,83 @@
 import { idenpotentQuery, sleep } from '@/index';
 
 describe('Default cases', () => {
-  test('hello world test', () => {
-    const s = 'hello Modern.js';
-    expect(s).toBe('hello Modern.js');
-  });
-
   test('basic', async () => {
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        return sleep(10).then(() => params);
+        return sleep(10).then(() => params.query);
       },
-      queryParam: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      queryParams: [3, 2, 1],
       options: {
         getTraceId: (item, index) => {
-          return `${item}:${index}`;
+          return `${index}`;
         },
         concurrency: 2,
       },
     });
-    expect(result).toStrictEqual([{ status: 'success' }]);
+    expect(result.map(item => item.result)).toStrictEqual([[3], [2], [1]]);
+  });
+
+  test('singleQueryParamsCount', async () => {
+    const result = await idenpotentQuery({
+      queryFun: (params: any) => {
+        return sleep(10).then(() => params.query);
+      },
+      queryParams: [3, 2, 1],
+      options: {
+        getTraceId: (item, index) => {
+          return `${index}`;
+        },
+        concurrency: 2,
+        singleQueryParamsCount: 2,
+      },
+    });
+    expect(result.map(item => item.result)).toStrictEqual([[3, 2], [1]]);
+  });
+
+  test('singleQueryParamsCount', async () => {
+    let errindex = 0;
+    const result = await idenpotentQuery({
+      queryFun: (params: any) => {
+        if (errindex++ === 1) {
+          throw new Error('retry');
+        }
+        return sleep(10).then(() => params.query);
+      },
+      queryParams: [3, 2, 1],
+      options: {
+        getTraceId: (item, index) => {
+          return `${index}`;
+        },
+        concurrency: 2,
+        singleQueryParamsCount: 2,
+      },
+    });
+    expect(result.map(item => item.result)).toStrictEqual([[3, 2], [1]]);
+  });
+
+  test('singleQueryParamsCount', async () => {
+    let errindex = 0;
+    const result = await idenpotentQuery({
+      queryFun: (params: any) => {
+        if (errindex++ === 1) {
+          throw new Error('retry');
+        }
+        return sleep(10).then(() => params.query);
+      },
+      queryParams: [3, 2, 1],
+
+      options: {
+        getTraceId: (item, index) => {
+          return `${index}`;
+        },
+        getRetryTimeByError: () => 0,
+        concurrency: 2,
+        singleQueryParamsCount: 2,
+      },
+    });
+    expect(result.map(item => item.result)).toStrictEqual([
+      [3, 2],
+      new Error('retry'),
+    ]);
   });
 });

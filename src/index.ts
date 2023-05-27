@@ -12,7 +12,7 @@ import {
 
 interface BatchRetryQueryFunQuery<T, R> {
   queryFun: (param: any) => any;
-  paramsList: T[][];
+  paramsList: Record<string, T[]>[];
   traceIds: string[];
   traceIdKey: string;
   sleepTime: number;
@@ -74,6 +74,7 @@ interface IdenpotentQueryFunParams<T, R> {
     getRetryTimeByError?: GetRetryTimeByErrorFun;
     getIsRunningByError?: GetIsRunningByErrorFun;
     singleQueryDone?: QueryDoneFun<R>;
+    queryKey?: string;
   };
 }
 
@@ -86,6 +87,7 @@ const idenpotentQuery = async <T, R>({
     sleepTime: 2000,
     concurrency: DEFAULT_CONCURRENCY,
     traceIdKey: 'traceId',
+    queryKey: 'query',
   },
 }: IdenpotentQueryFunParams<T, R>): Promise<QueryFunResult<R>[]> => {
   if (!queryFun || typeof queryFun !== 'function') {
@@ -109,13 +111,14 @@ const idenpotentQuery = async <T, R>({
     getRetryTimeByError,
     getIsRunningByError,
     sleepTime = 2000,
+    queryKey = 'query',
   } = options;
 
   if (typeof getTraceId !== 'function') {
     throw new Error('getTraceId must be a function');
   }
 
-  let finalQueryParamsCount: number = queryParams.length;
+  let finalQueryParamsCount = 1;
 
   const hasSingleQueryParamsCountParam =
     typeof singleQueryParamsCount === 'number' && singleQueryParamsCount > 0;
@@ -133,13 +136,14 @@ const idenpotentQuery = async <T, R>({
 
   paramsList.forEach((item, index) => traceIds.push(getTraceId(item, index)));
 
-  const queryFunList = paramsList.map(
-    (item, idx) => () =>
-      queryFun({
-        ...item,
-        [traceIdKey]: traceIds[idx],
-      }),
-  );
+  const finalParamsList = paramsList.map(item => ({ [queryKey]: item }));
+
+  const queryFunList = finalParamsList.map((item, idx) => () => {
+    return queryFun({
+      ...item,
+      [traceIdKey]: traceIds[idx],
+    });
+  });
   const allResult: QueryFunResult<R>[] = await limitQuery<R>({
     tasks: queryFunList,
     concurrency,
@@ -175,7 +179,7 @@ const idenpotentQuery = async <T, R>({
   if (Object.keys(retryQueryTimeByQueryIndex).length) {
     const retryResultByIndex = await batchRetryQuery({
       queryFun,
-      paramsList,
+      paramsList: finalParamsList,
       traceIds,
       traceIdKey,
       sleepTime,
