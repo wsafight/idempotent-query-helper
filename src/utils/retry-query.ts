@@ -24,6 +24,17 @@ export const retryQuery = async <R>({
   queryDone,
 }: RetryQueryFunParams<R>): Promise<QueryFunResult<R>> => {
   let currentRetryTime = retryTime;
+
+  const handleError = (error: unknown): QueryFunResult<R> => {
+    queryDone?.(error, null);
+    return {
+      status: 'error',
+      result: error,
+    };
+  };
+
+  const hasGetIsRunningByErrorFun = typeof getIsRunningByError === 'function';
+
   while (currentRetryTime > 0) {
     currentRetryTime--;
     try {
@@ -34,17 +45,18 @@ export const retryQuery = async <R>({
         result: res,
       };
     } catch (error) {
-      const isRunning = getIsRunningByError
-        ? getIsRunningByError(error)
-        : false;
-      if (retryTime === 0 || !isRunning) {
-        queryDone?.(error, null);
-        return {
-          status: 'error',
-          result: error,
-        };
+      if (hasGetIsRunningByErrorFun) {
+        const isContinueRun = getIsRunningByError(error);
+        if (!isContinueRun) {
+          return handleError(error);
+        }
+      }
+
+      if (currentRetryTime === 0) {
+        return handleError(error);
       }
     }
+
     await sleep(sleepTime);
   }
   return {

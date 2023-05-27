@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { splitQueryParamsFromList } from './utils/split-query-params-from-list';
 import { limitQuery } from './utils/limit-query';
 import { sleep } from './utils/sleep';
@@ -15,7 +14,6 @@ interface BatchRetryQueryFunQuery<T, R> {
   queryFun: (param: any) => any;
   paramsList: T[][];
   traceIds: string[];
-  queryKey?: string;
   traceIdKey: string;
   sleepTime: number;
   retryQueryTimeByQueryIndex: Record<string, number>;
@@ -27,7 +25,6 @@ const batchRetryQuery = async <T, R>({
   queryFun,
   paramsList,
   traceIds,
-  queryKey,
   traceIdKey,
   retryQueryTimeByQueryIndex,
   sleepTime,
@@ -45,7 +42,6 @@ const batchRetryQuery = async <T, R>({
   await sleep(sleepTime);
 
   const resultByIndex: Record<number, QueryFunResult<R>> = {};
-  const hasQueryKey = typeof queryKey === 'string' && queryKey.length > 0;
   for (const index of retryQueryIndex) {
     const currentIndex = Number(index);
     const currentRetryTime = retryQueryTimeByQueryIndex[currentIndex];
@@ -53,7 +49,7 @@ const batchRetryQuery = async <T, R>({
     const result = await retryQuery<R>({
       queryFun,
       params: {
-        ...(hasQueryKey ? { [queryKey]: currentParams } : currentParams[0]),
+        ...currentParams,
         [traceIdKey]: traceIds[currentIndex],
       },
       getIsRunningByError,
@@ -68,9 +64,8 @@ const batchRetryQuery = async <T, R>({
 
 interface IdenpotentQueryFunParams<T, R> {
   queryFun: (param: any) => any;
-  queryParam: T | T[];
+  queryParams: T[];
   options: {
-    queryKey?: string;
     concurrency?: number;
     traceIdKey?: string;
     sleepTime?: number;
@@ -86,9 +81,8 @@ const DEFAULT_CONCURRENCY = 6;
 
 const idenpotentQuery = async <T, R>({
   queryFun,
-  queryParam = [],
+  queryParams = [],
   options = {
-    queryKey: '',
     sleepTime: 2000,
     concurrency: DEFAULT_CONCURRENCY,
     traceIdKey: 'traceId',
@@ -98,13 +92,13 @@ const idenpotentQuery = async <T, R>({
     throw new Error('queryFun must be a function');
   }
 
-  if (queryParam === undefined || queryParam === null) {
+  if (queryParams === undefined || queryParams === null) {
     throw new Error('queryParam cannot empty');
   }
 
-  const isMultipleQueryParams = Array.isArray(queryParam);
-
-  const queryParams: T[] = isMultipleQueryParams ? queryParam : [queryParam];
+  if (!Array.isArray(queryParams)) {
+    throw new Error('queryParam must be a Array');
+  }
 
   const {
     concurrency = DEFAULT_CONCURRENCY,
@@ -115,8 +109,11 @@ const idenpotentQuery = async <T, R>({
     getRetryTimeByError,
     getIsRunningByError,
     sleepTime = 2000,
-    queryKey,
   } = options;
+
+  if (typeof getTraceId !== 'function') {
+    throw new Error('getTraceId must be a function');
+  }
 
   let finalQueryParamsCount: number = queryParams.length;
 
@@ -133,18 +130,13 @@ const idenpotentQuery = async <T, R>({
   });
 
   const traceIds: string[] = [];
-  if (typeof getTraceId === 'function') {
-    paramsList.forEach(item => traceIds.push(getTraceId(item)));
-  } else {
-    paramsList.forEach(_item => traceIds.push(nanoid()));
-  }
 
-  const hasQueryKey = typeof queryKey === 'string' && queryKey.length > 0;
+  paramsList.forEach((item, index) => traceIds.push(getTraceId(item, index)));
 
   const queryFunList = paramsList.map(
     (item, idx) => () =>
       queryFun({
-        ...(hasQueryKey ? { [queryKey]: item } : item[0]),
+        ...item,
         [traceIdKey]: traceIds[idx],
       }),
   );
@@ -185,7 +177,6 @@ const idenpotentQuery = async <T, R>({
       queryFun,
       paramsList,
       traceIds,
-      queryKey,
       traceIdKey,
       sleepTime,
       retryQueryTimeByQueryIndex,
@@ -203,7 +194,6 @@ const idenpotentQuery = async <T, R>({
 export {
   batchRetryQuery,
   idenpotentQuery,
-  nanoid,
   splitQueryParamsFromList,
   limitQuery,
   sleep,
