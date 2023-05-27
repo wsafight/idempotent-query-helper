@@ -1,13 +1,6 @@
 import { sleep } from '@/utils/sleep';
 import { retryQuery } from '@/utils/retry-query';
 
-// queryFun,
-// params,
-// retryTime,
-// sleepTime,
-// getIsRunningByError,
-// queryDone,
-
 describe('retry Query Function', () => {
   test('basic', async () => {
     const result = await retryQuery<number>({

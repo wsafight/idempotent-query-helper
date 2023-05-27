@@ -87,7 +87,7 @@ const idenpotentQuery = async <T, R>({
     sleepTime: 2000,
     concurrency: DEFAULT_CONCURRENCY,
     traceIdKey: 'traceId',
-    queryKey: 'query',
+    queryKey: 'batchQueryItem',
   },
 }: IdenpotentQueryFunParams<T, R>): Promise<QueryFunResult<R>[]> => {
   if (!queryFun || typeof queryFun !== 'function') {
@@ -111,7 +111,7 @@ const idenpotentQuery = async <T, R>({
     getRetryTimeByError,
     getIsRunningByError,
     sleepTime = 2000,
-    queryKey = 'query',
+    queryKey = 'batchQueryItem',
   } = options;
 
   if (typeof getTraceId !== 'function') {

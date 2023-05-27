@@ -4,7 +4,7 @@ describe('Default cases', () => {
   test('basic', async () => {
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        return sleep(10).then(() => params.query);
+        return sleep(10).then(() => params.batchQueryItem);
       },
       queryParams: [3, 2, 1],
       options: {
@@ -20,7 +20,7 @@ describe('Default cases', () => {
   test('singleQueryParamsCount', async () => {
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        return sleep(10).then(() => params.query);
+        return sleep(10).then(() => params.batchQueryItem);
       },
       queryParams: [3, 2, 1],
       options: {
@@ -35,13 +35,16 @@ describe('Default cases', () => {
   });
 
   test('singleQueryParamsCount', async () => {
-    let errindex = 0;
+    const errindex = 0;
+    const errCode: Record<string, number> = {};
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        if (errindex++ === 1) {
+        const currentParamsStr = JSON.stringify(params);
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        if (errCode[currentParamsStr] === 1) {
           throw new Error('retry');
         }
-        return sleep(10).then(() => params.query);
+        return sleep(10).then(() => params.batchQueryItem);
       },
       queryParams: [3, 2, 1],
       options: {
@@ -56,13 +59,16 @@ describe('Default cases', () => {
   });
 
   test('singleQueryParamsCount', async () => {
-    let errindex = 0;
+    const errindex = 0;
+    const errCode: Record<string, number> = {};
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        if (errindex++ === 1) {
+        const currentParamsStr = JSON.stringify(params);
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        if (errCode[currentParamsStr] === 1) {
           throw new Error('retry');
         }
-        return sleep(10).then(() => params.query);
+        return sleep(10).then(() => params.batchQueryItem);
       },
       queryParams: [3, 2, 1],
 
@@ -79,5 +85,32 @@ describe('Default cases', () => {
       [3, 2],
       new Error('retry'),
     ]);
+  });
+
+  test('singleQueryParamsCount', async () => {
+    let errindex = 0;
+    const errCode: Record<string, number> = {};
+    const result = await idenpotentQuery({
+      queryFun: (params: any) => {
+        errindex++;
+        const currentParamsStr = JSON.stringify(params);
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        if (errCode[currentParamsStr] < 3) {
+          throw new Error('retry');
+        }
+        return sleep(10).then(() => params.batchQueryItem);
+      },
+      queryParams: [3, 2, 1],
+
+      options: {
+        getTraceId: (item, index) => {
+          return `${index}`;
+        },
+        getRetryTimeByError: () => 2,
+        concurrency: 2,
+        singleQueryParamsCount: 2,
+      },
+    });
+    expect(result.map(item => item.result)).toStrictEqual([[3, 2], [1]]);
   });
 });

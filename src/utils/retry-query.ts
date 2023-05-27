@@ -32,7 +32,6 @@ export const retryQuery = async <R>({
       result: error,
     };
   };
-
   const hasGetIsRunningByErrorFun = typeof getIsRunningByError === 'function';
 
   while (currentRetryTime > 0) {
