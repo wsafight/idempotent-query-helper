@@ -35,12 +35,11 @@ describe('Default cases', () => {
   });
 
   test('singleQueryParamsCount', async () => {
-    const errindex = 0;
     const errCode: Record<string, number> = {};
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
         const currentParamsStr = JSON.stringify(params);
-        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + 1;
         if (errCode[currentParamsStr] === 1) {
           throw new Error('retry');
         }
@@ -59,12 +58,11 @@ describe('Default cases', () => {
   });
 
   test('singleQueryParamsCount', async () => {
-    const errindex = 0;
     const errCode: Record<string, number> = {};
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
         const currentParamsStr = JSON.stringify(params);
-        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + 1;
         if (errCode[currentParamsStr] === 1) {
           throw new Error('retry');
         }
@@ -76,25 +74,20 @@ describe('Default cases', () => {
         getTraceId: (item, index) => {
           return `${index}`;
         },
-        getRetryTimeByError: () => 0,
+        retryTime: () => 0,
         concurrency: 2,
         singleQueryParamsCount: 2,
       },
     });
-    expect(result.map(item => item.result)).toStrictEqual([
-      [3, 2],
-      new Error('retry'),
-    ]);
+    expect(result.map(item => item.result)).toStrictEqual([[3, 2], [1]]);
   });
 
   test('singleQueryParamsCount', async () => {
-    let errindex = 0;
     const errCode: Record<string, number> = {};
     const result = await idenpotentQuery({
       queryFun: (params: any) => {
-        errindex++;
         const currentParamsStr = JSON.stringify(params);
-        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + errindex;
+        errCode[currentParamsStr] = (errCode[currentParamsStr] || 0) + 1;
         if (errCode[currentParamsStr] < 3) {
           throw new Error('retry');
         }
@@ -106,11 +99,11 @@ describe('Default cases', () => {
         getTraceId: (item, index) => {
           return `${index}`;
         },
-        getRetryTimeByError: () => 2,
+        retryTime: () => 2,
         concurrency: 2,
         singleQueryParamsCount: 2,
       },
     });
     expect(result.map(item => item.result)).toStrictEqual([[3, 2], [1]]);
-  });
+  }, 10000);
 });

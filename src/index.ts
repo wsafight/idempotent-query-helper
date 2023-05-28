@@ -66,28 +66,32 @@ interface IdenpotentQueryFunParams<T, R> {
   queryFun: (param: any) => any;
   queryParams: T[];
   options: {
+    queryKey?: string;
     concurrency?: number;
     traceIdKey?: string;
     sleepTime?: number;
     singleQueryParamsCount?: number;
     getTraceId?: GetTraceIdFun<T>;
-    getRetryTimeByError?: GetRetryTimeByErrorFun;
+    retryTime?: number | GetRetryTimeByErrorFun;
     getIsRunningByError?: GetIsRunningByErrorFun;
     singleQueryDone?: QueryDoneFun<R>;
-    queryKey?: string;
   };
 }
 
 const DEFAULT_CONCURRENCY = 6;
 
+const isPositiveNum = (num: any): num is number => {
+  return typeof num === 'number' && num > 0;
+};
+
 const idenpotentQuery = async <T, R>({
   queryFun,
   queryParams = [],
   options = {
+    queryKey: 'batchQueryItem',
+    traceIdKey: 'traceId',
     sleepTime: 2000,
     concurrency: DEFAULT_CONCURRENCY,
-    traceIdKey: 'traceId',
-    queryKey: 'batchQueryItem',
   },
 }: IdenpotentQueryFunParams<T, R>): Promise<QueryFunResult<R>[]> => {
   if (!queryFun || typeof queryFun !== 'function') {
@@ -108,7 +112,7 @@ const idenpotentQuery = async <T, R>({
     getTraceId,
     singleQueryParamsCount,
     singleQueryDone,
-    getRetryTimeByError,
+    retryTime = 3,
     getIsRunningByError,
     sleepTime = 2000,
     queryKey = 'batchQueryItem',
@@ -166,13 +170,19 @@ const idenpotentQuery = async <T, R>({
   if (apiErrorIndex.length) {
     apiErrorIndex.forEach(index => {
       const currentErr: Error = apiErrorByIndex[index]!;
-      const retryTime = getRetryTimeByError
-        ? getRetryTimeByError(currentErr)
-        : 1;
-      if (retryTime <= 0) {
+      let finalRetryTime = 3;
+      if (isPositiveNum(retryTime)) {
+        finalRetryTime = retryTime;
+      } else if (typeof retryTime === 'function') {
+        const currentRetryTime = retryTime(currentErr);
+        if (isPositiveNum(currentRetryTime)) {
+          finalRetryTime = currentRetryTime;
+        }
+      }
+      if (finalRetryTime <= 0) {
         return;
       }
-      retryQueryTimeByQueryIndex[index] = retryTime;
+      retryQueryTimeByQueryIndex[index] = finalRetryTime;
     });
   }
 
