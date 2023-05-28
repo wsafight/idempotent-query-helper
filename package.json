@@ -1,6 +1,6 @@
 {
   "name": "idempotent-query-helper",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "jsnext:source": "./src/index.ts",
   "types": "./dist/types/index.d.ts",
   "main": "./dist/lib/index.js",
@@ -36,19 +36,19 @@
   ],
   "peerDependencies": {},
   "devDependencies": {
-    "@modern-js/module-tools": "2.19.1",
-    "@modern-js/eslint-config": "2.19.1",
-    "@modern-js/tsconfig": "2.19.1",
     "@modern-js-app/eslint-config": "2.19.1",
-    "rimraf": "~3.0.2",
-    "lint-staged": "~13.1.0",
-    "prettier": "~2.8.1",
-    "husky": "~8.0.1",
-    "typescript": "~4.9.4",
+    "@modern-js/eslint-config": "2.19.1",
+    "@modern-js/module-tools": "2.19.1",
+    "@modern-js/plugin-testing": "2.19.1",
+    "@modern-js/tsconfig": "2.19.1",
     "@types/jest": "~29.2.4",
     "@types/node": "~16.11.7",
     "@types/react": "~18.0.26",
-    "@modern-js/plugin-testing": "2.19.1"
+    "husky": "~8.0.1",
+    "lint-staged": "~13.1.0",
+    "prettier": "~2.8.1",
+    "rimraf": "~3.0.2",
+    "typescript": "~4.9.4"
   },
   "sideEffects": [],
   "publishConfig": {
